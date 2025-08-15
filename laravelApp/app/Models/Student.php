@@ -19,4 +19,9 @@ class Student extends Model
        'lname',
        'email',
     ];
+    // Many-to-Many with Course
+    public function courses()
+    {
+        return $this->belongsToMany(Course::class);
+    }
 }

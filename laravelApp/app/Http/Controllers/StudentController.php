@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
+use App\Models\Course;
 use App\Http\Requests\StoreStudentRequest;
 use App\Http\Requests\UpdateStudentRequest;
 use Illuminate\Support\Facades\Session;
@@ -15,7 +16,7 @@ class StudentController extends Controller
     public function index()
     {
         return view('students.index',[
-          'students' => student::all()
+          'students' => Student::all()
         ]);
     }
 
@@ -24,7 +25,8 @@ class StudentController extends Controller
      */
     public function create()
     {
-        return view('students.create');
+         $allCourses = Course::all(); // Pass courses for selection
+        return view('students.create', compact('allCourses'));
     }
 
     /**
@@ -32,24 +34,30 @@ class StudentController extends Controller
      */
     public function store(StoreStudentRequest $request)
     {
-       student::create($request -> validated());
+      $student= student::create($request -> validated());
+       if ($request->has('courses')) {
+            $student->courses()->attach($request->courses);
+        }
        return redirect() -> route('students.index');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Student $student)
-    {
-        //
-    }
+    public function show($id)
+{
+    $student = Student::with('courses')->findOrFail($id);
+    $allCourses = Course::all(); // to populate dropdown
+
+    return view('students.show', compact('student', 'allCourses'));
+}
 
     /**
      * Show the form for editing the specified resource.
      */
     public function edit(Student $student)
     {
-        return view('students.edit', compact('student'));
+       return view('students.edit', compact('student'));
     }
 
     
@@ -63,6 +71,23 @@ class StudentController extends Controller
         Session::flash('success', 'Student updated successfully');
         return redirect()->route('students.index');
     }
+
+    public function addCourse(StoreStudentRequest $request, $studentId)
+    {
+        $student = Student::findOrFail($studentId);
+        $student->courses()->attach($request->course_id);
+
+        return redirect()->back()->with('success', 'Course added to student successfully.');
+    }
+    
+    public function removeCourse($studentId, $courseId)
+    {
+        $student = Student::findOrFail($studentId);
+        $student->courses()->detach($courseId);
+
+        return redirect()->back()->with('success', 'Course removed from student.');
+    }
+
     /**
      * Remove the specified resource from storage.
      */
